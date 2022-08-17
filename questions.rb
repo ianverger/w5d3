@@ -61,6 +61,10 @@ class User
         Reply.find_by_user_id(self.id)        
     end
 
+    def followed_questions
+        QuestionFollow.followers_for_question_id(self.id)
+    end
+
 end
 
 class Question
@@ -104,6 +108,10 @@ class Question
     def replies
         Reply.find_by_question_id(self.id)
     end
+
+    def followers
+        QuestionFollow.followers_for_question_id(self.id)
+    end
 end
 
 class QuestionFollow
@@ -115,19 +123,39 @@ class QuestionFollow
         @question_id = options['question_id']
     end
 
-    # def self.find_by_author_id(author_id)
-    #     question = QuestionsDatabase.instance.execute(<<-SQL, author_id)
-    #         SELECT
-    #             *
-    #         FROM
-    #             questions
-    #         WHERE
-    #             author_id = ?
-    #     SQL
-    #     return nil unless question.length > 0
+    def self.followers_for_question_id(question_id)
+        followers = QuestionsDatabase.instance.execute(<<-SQL, question_id)
+            SELECT
+                *
+            FROM
+                question_follows
+            JOIN
+                questions ON questions.id = question_follows.question_id
+            WHERE
+                question_id = ?
+        SQL
+        return nil unless followers.length > 0
 
-    #     User.new(question.first)
-    # end
+        User.new(followers)
+    end
+
+    def self.followed_questions_for_user_id(user_id)
+        questions = QuestionsDatabase.instance.execute(<<-SQL, user_id)
+            SELECT
+                *
+            FROM
+                question_follows
+            JOIN
+                users ON users.id = question_follows.follower_id
+            WHERE
+                user_id = ?
+        SQL
+        return nil unless questions.length > 0
+
+        Question.new(questions)
+    end
+
+    
 
 end
 
